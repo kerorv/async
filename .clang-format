@@ -1,0 +1,20 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: Inline
+AccessModifierOffset: -2
+BreakConstructorInitializersBeforeComma: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerIndentWidth: 2
+AlignAfterOpenBracket: DontAlign
+ContinuationIndentWidth: 2
+IncludeCategories: 
+  - Regex:           '^"(s|S)td(a|A)fx\.h"'
+    Priority:        -3
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+  - Regex:           '^<.*'
+    Priority:        2
+  - Regex:           '.*'
+    Priority:        3
