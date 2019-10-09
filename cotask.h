@@ -2,6 +2,7 @@
 
 #include <experimental/coroutine>
 #include <optional>
+#include <vector>
 #include "callback_host.h"
 
 namespace async
@@ -275,13 +276,15 @@ DetachedTask AwaitTask(CoTask<T> task)
 }  // namespace detail
 
 template <typename F, typename... Args>
-void CoSpawn(F&& f, Args&&... args)
+void CoSpawn(F&& f, Args... args)
 {
   static_assert(IsCoTask<typename std::result_of<F(args...)>::type>::value,
     "CoSpawn accept function parameter that return CoTask.");
-  // TODO: check all args must not be pointer or reference
+  // check all args must not be pointer or reference
+  static_assert(
+    ((!std::is_pointer_v<Args> && !std::is_reference_v<Args>)&&...));
 
-  detail::AwaitTask(f(std::forward<Args>(args)...));
+  detail::AwaitTask(f(args...));
 }
 
 template <typename R, typename C, typename... Args>
@@ -289,9 +292,106 @@ void CoSpawn(R C::*const mf, C* clsptr, Args... args)
 {
   static_assert(IsCoTask<decltype((clsptr->*mf)(args...))>::value,
     "CoSpawn accept function parameter that return CoTask.");
-  // TODO: check all args must not be pointer or reference
-  static_assert((!std::is_pointer_v<Args> && ...));
+  // check all args must not be pointer or reference
+  static_assert(
+    ((!std::is_pointer_v<Args> && !std::is_reference_v<Args>)&&...));
 
   detail::AwaitTask((clsptr->*mf)(args...));
+}
+
+namespace detail
+{
+template <typename T>
+struct WhenAwaiter : public CallbackHost
+{
+  std::vector<CoTask<T>> tasks;
+  std::vector<T> results;
+  size_t count;
+  std::experimental::coroutine_handle<> coroutine;
+
+  WhenAwaiter(std::vector<CoTask<T>>&& awaitables)
+    : tasks(std::move(awaitables))
+    , coroutine(nullptr)
+  {
+    count = tasks.size();
+    results.resize(count);
+  }
+
+  template <typename Task>
+  DetachedTask StartTask(Task task, size_t index)
+  {
+    results[index] = co_await task;
+    if (--count == 0)
+    {
+      coroutine.resume();
+    }
+  }
+
+  bool await_ready() { return false; }
+
+  void await_suspend(std::experimental::coroutine_handle<> handle)
+  {
+    coroutine = handle;
+
+    for (size_t idx = 0; idx < tasks.size(); ++idx)
+    {
+      auto& task = tasks[idx];
+      StartTask(std::move(task), idx);
+    }
+  }
+
+  std::vector<T> await_resume() { return results; }
+};
+
+template <>
+struct WhenAwaiter<void> : public CallbackHost
+{
+  std::vector<CoTask<>> tasks;
+  size_t count;
+  std::experimental::coroutine_handle<> coroutine;
+
+  WhenAwaiter(std::vector<CoTask<>>&& awaitables)
+    : tasks(std::move(awaitables))
+    , coroutine(nullptr)
+  {
+    count = tasks.size();
+  }
+
+  template <typename Task>
+  DetachedTask StartTask(Task task)
+  {
+    co_await task;
+    if (--count == 0)
+    {
+      coroutine.resume();
+    }
+  }
+
+  bool await_ready() { return false; }
+
+  void await_suspend(std::experimental::coroutine_handle<> handle)
+  {
+    coroutine = handle;
+
+    for (size_t idx = 0; idx < tasks.size(); ++idx)
+    {
+      auto& task = tasks[idx];
+      StartTask(std::move(task));
+    }
+  }
+
+  void await_resume() {}
+};
+}  // namespace detail
+
+template <typename T>
+auto WhenAll(std::vector<CoTask<T>> tasks)
+{
+  return detail::WhenAwaiter<T>{std::move(tasks)};
+}
+
+inline auto WhenAll(std::vector<CoTask<>> tasks)
+{
+  return detail::WhenAwaiter<void>{std::move(tasks)};
 }
 }  // namespace async
