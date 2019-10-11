@@ -1,11 +1,12 @@
 #include <iostream>
 #include "cotask.h"
+#include "callback.h"
 
 #define STR(s) #s
 #define STR2(s) STR(s)
 #define LOCATION __FUNCTION__ "-" STR2(__LINE__)
 
-class Object
+class Object : public async::CallbackHost
 {
 public:
   Object(const char* location)
@@ -39,6 +40,12 @@ public:
   {
     return std::string("Object ")+location_;
   }
+
+  void OnEvent(int event)
+  {
+    std::cout << ToString() << " OnEvent: " << "event=" << event << std::endl;
+  }
+
 private:
   std::string location_;
 };
@@ -73,9 +80,22 @@ async::CoTask<> TestWhenAll2()
   std::cout << "All done" << std::endl;
 }
 
+void OnEvent2(int event)
+{
+  std::cout << "OnEvent2: event=" << event << std::endl;
+}
+
 int main()
 {
-  //  async::CoSpawn(T2);
-  async::CoSpawn(TestWhenAll1);
+  // async::CoSpawn(T2);
+  // async::CoSpawn(TestWhenAll1);
+
+  Object object(LOCATION);
+  auto callback = MakeCallback(&Object::OnEvent, &object, std::placeholders::_1);
+  callback.Invoke(5);
+
+  auto callback2 = MakeCallback(&OnEvent2, std::placeholders::_1);
+  callback2.Invoke(1);
+
   return 0;
 }
