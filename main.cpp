@@ -1,6 +1,7 @@
 #include <iostream>
-#include "cotask.h"
+#include "app.h"
 #include "callback.h"
+#include "cotask.h"
 
 #define STR(s) #s
 #define STR2(s) STR(s)
@@ -36,14 +37,12 @@ public:
     return *this;
   }
 
-  std::string ToString()
-  {
-    return std::string("Object ")+location_;
-  }
+  std::string ToString() { return std::string("Object ") + location_; }
 
   void OnEvent(int event)
   {
-    std::cout << ToString() << " OnEvent: " << "event=" << event << std::endl;
+    std::cout << ToString() << " OnEvent: "
+              << "event=" << event << std::endl;
   }
 
 private:
@@ -85,17 +84,47 @@ void OnEvent2(int event)
   std::cout << "OnEvent2: event=" << event << std::endl;
 }
 
+void OnTimer1(TickTimerID timer_id)
+{
+  static size_t tick = 0;
+  std::cout << "timer " << timer_id.ptr << " : " << ++tick << std::endl;
+}
+
+void OnTimer2(TickTimerID timer_id)
+{
+  static size_t tick = 0;
+  std::cout << "timer " << timer_id.ptr << " : " << ++tick << std::endl;
+}
+
 int main()
 {
   // async::CoSpawn(T2);
   // async::CoSpawn(TestWhenAll1);
 
-  Object object(LOCATION);
-  auto callback = MakeCallback(&Object::OnEvent, &object, std::placeholders::_1);
-  callback.Invoke(5);
+  /*
+    Object object(LOCATION);
+    auto callback = MakeCallback(&Object::OnEvent, &object,
+    std::placeholders::_1); callback.Invoke(5);
 
-  auto callback2 = MakeCallback(&OnEvent2, std::placeholders::_1);
-  callback2.Invoke(1);
+    auto callback2 = MakeCallback(&OnEvent2, std::placeholders::_1);
+    callback2.Invoke(1);
+*/
+  /*
+    auto timer_cb = MakeCallback(&OnTimer, std::placeholders::_1);
+
+    using namespace std::chrono_literals;
+    TickTimerManager::Instance().AddOneshotTimer(1s, timer_cb);
+  */
+
+  App app;
+  app.AddPeriodTimer(
+    std::chrono::seconds{1}, MakeCallback(&OnTimer1, std::placeholders::_1));
+    app.AddPeriodTimer(
+    std::chrono::seconds{10}, MakeCallback(&OnTimer2, std::placeholders::_1));
+//  app.AddOneshotTimer(
+//    std::chrono::seconds{1}, MakeCallback(&OnTimer, std::placeholders::_1));
+
+  app.Start();
 
   return 0;
 }

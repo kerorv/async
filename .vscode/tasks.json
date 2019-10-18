@@ -19,7 +19,9 @@
         "/Fo:",
         "${workspaceFolder}/output/",
         "main.cpp",
-        "cotask.cpp"
+        "cotask.cpp",
+        "tick_timer.cpp",
+        "app.cpp"
       ],
       "group": {
         "kind": "build",

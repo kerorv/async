@@ -1,3 +1,5 @@
+#pragma once
+
 #include <functional>
 #include "callback_host.h"
 
@@ -74,8 +76,8 @@ template <typename... Args>
 async::CallbackHost* CallbackHostFilter(
   async::CallbackHost* v, Args const&... args)
 {
-//  static_assert(
-//    ((!std::is_pointer_v<Args> && !std::is_reference_v<Args>)&&...));
+  //  static_assert(
+  //    ((!std::is_pointer_v<Args> && !std::is_reference_v<Args>)&&...));
   return v;
 }
 
@@ -86,7 +88,8 @@ auto MakeCallback(F&& f, Args&&... args)
   async::LifeTimeTracker::Monitor monitor;
   if constexpr (CallbackFunctionTraits<F>::is_member_func)
   {
-    static_assert(std::is_base_of_v<async::CallbackHost, CallbackFunctionTraits<F>::ClassType>);
+    static_assert(std::is_base_of_v<async::CallbackHost,
+      CallbackFunctionTraits<F>::ClassType>);
     async::CallbackHost* host = CallbackHostFilter(std::forward<Args>(args)...);
     monitor = host->GetMonitor();
   }
