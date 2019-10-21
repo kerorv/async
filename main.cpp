@@ -1,3 +1,4 @@
+#include <ctime>
 #include <iostream>
 #include "app.h"
 #include "callback.h"
@@ -84,17 +85,24 @@ void OnEvent2(int event)
   std::cout << "OnEvent2: event=" << event << std::endl;
 }
 
-void OnTimer1(TickTimerID timer_id)
+class TimerThing : public async::CallbackHost
 {
-  static size_t tick = 0;
-  std::cout << "timer " << timer_id.ptr << " : " << ++tick << std::endl;
-}
+public:
+  TimerThing(size_t id)
+    : id_(id)
+    , tick_(0)
+  {
+  }
 
-void OnTimer2(TickTimerID timer_id)
-{
-  static size_t tick = 0;
-  std::cout << "timer " << timer_id.ptr << " : " << ++tick << std::endl;
-}
+  void OnTimer(TickTimerID timer_id)
+  {
+    std::cout << " : " << ++tick_ << " " << std::endl;
+  }
+
+private:
+  size_t id_;
+  size_t tick_;
+};
 
 int main()
 {
@@ -117,12 +125,16 @@ int main()
   */
 
   App app;
+
+  auto th1 = std::make_unique<TimerThing>(1);
+  auto th2 = std::make_unique<TimerThing>(2);
+  auto th3 = std::make_unique<TimerThing>(3);
   app.AddPeriodTimer(
-    std::chrono::seconds{1}, MakeCallback(&OnTimer1, std::placeholders::_1));
-    app.AddPeriodTimer(
-    std::chrono::seconds{10}, MakeCallback(&OnTimer2, std::placeholders::_1));
-//  app.AddOneshotTimer(
-//    std::chrono::seconds{1}, MakeCallback(&OnTimer, std::placeholders::_1));
+    std::chrono::hours{24}, MakeCallback(&TimerThing::OnTimer, th1.get(), std::placeholders::_1));
+  app.AddPeriodTimer(
+    std::chrono::seconds{60}, MakeCallback(&TimerThing::OnTimer, th2.get(), std::placeholders::_1));
+  app.AddPeriodTimer(
+    std::chrono::seconds{70}, MakeCallback(&TimerThing::OnTimer, th3.get(), std::placeholders::_1));
 
   app.Start();
 

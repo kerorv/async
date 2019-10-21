@@ -8,7 +8,7 @@ App::App()
 
 void App::Start()
 {
-  timer_.expires_from_now(TickPeriod{1});
+  timer_.expires_from_now(TickPeriod{1} / 10);
   timer_.async_wait([this](const std::error_code& ec) { OnTimer(); });
   ioctx_.run();
 }
@@ -36,6 +36,6 @@ void App::OnTimer()
 {
   ttm_.RunTick();
 
-  timer_.expires_at(timer_.expiry() + TickPeriod{1});
+  timer_.expires_at(timer_.expiry() + TickPeriod{1} / 10);
   timer_.async_wait([this](const std::error_code& ec) { OnTimer(); });
 }

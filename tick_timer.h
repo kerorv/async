@@ -34,17 +34,21 @@ struct TimerNode
 class TickTimerWheel
 {
 public:
-  TickTimerWheel(size_t size);
-  void AddNode(TimerNode* node, size_t offset_tick);
+  TickTimerWheel(size_t size, size_t ticks_per_slot);
+  void AddNode(TimerNode* node);
   void AddNodes(TimerNode* nodes, size_t current_tick);
 
   size_t MoveNext();
   TimerNode& CurrentSlot() { return slots_[cursor_]; }
+  TimerNode& NextSlot() { return slots_[(cursor_ + 1) % slots_.size()]; }
   size_t SlotCount() const { return slots_.size(); }
+  size_t WheelTicks() const { return slot_ticks_ * slots_.size(); }
+  size_t Cursor() const { return cursor_; }
 
 private:
   std::vector<TimerNode> slots_;
   size_t cursor_;
+  const size_t slot_ticks_;
 };
 
 class TickTimerManager
@@ -53,12 +57,15 @@ public:
   TickTimerManager(std::initializer_list<size_t> il);
   void RunTick();
 
-  TickTimerID AddPeriodTimer(uint32_t interval, const TickTimerCallback& callback);
-  TickTimerID AddOneshotTimer(uint32_t delay, const TickTimerCallback& callback);
+  TickTimerID AddPeriodTimer(
+    uint32_t interval, const TickTimerCallback& callback);
+  TickTimerID AddOneshotTimer(
+    uint32_t delay, const TickTimerCallback& callback);
   void RemoveTimer(TickTimerID timer_id);
 
 private:
-  TickTimerID AddTimer(uint32_t interval, const TickTimerCallback& callback, bool is_periodic);
+  TickTimerID AddTimer(
+    uint32_t interval, const TickTimerCallback& callback, bool is_periodic);
   void AddNode(TimerNode* node);
   void MoveWheel(size_t index);
 

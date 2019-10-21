@@ -1,18 +1,20 @@
 #include "tick_timer.h"
+#include <iostream>
 
 ////////////////////////////////////////////////////////////////////
 // TickTimerWheel
-TickTimerWheel::TickTimerWheel(size_t size)
+TickTimerWheel::TickTimerWheel(size_t size, size_t ticks_per_slot)
   : cursor_(0)
+  , slot_ticks_(ticks_per_slot)
 {
   slots_.resize(size);
 }
 
-void TickTimerWheel::AddNode(TimerNode* node, size_t offset_tick)
+void TickTimerWheel::AddNode(TimerNode* node)
 {
-  size_t slot_idx = (cursor_ + offset_tick) % SlotCount();
+  size_t expire = node->expire % WheelTicks();
+  size_t slot_idx = expire / slot_ticks_;
   TimerNode& slot = slots_[slot_idx];
-
   // insert node
   node->next = slot.next;
   slot.next = node;
@@ -23,8 +25,9 @@ void TickTimerWheel::AddNodes(TimerNode* nodes, size_t current_tick)
   TimerNode* node = nodes;
   while (node)
   {
-    AddNode(node, (node->expire - current_tick) % SlotCount());
-    node = node->next;
+    TimerNode* next = node->next;
+    AddNode(node);
+    node = next;
   }
 }
 
@@ -39,19 +42,23 @@ size_t TickTimerWheel::MoveNext()
 TickTimerManager::TickTimerManager(std::initializer_list<size_t> il)
   : tick_(0)
 {
+  size_t ticks_per_slot = 1;
   wheels_.reserve(il.size());
   for (auto slot_count : il)
   {
-    wheels_.push_back(TickTimerWheel(slot_count));
+    wheels_.push_back(TickTimerWheel(slot_count, ticks_per_slot));
+    ticks_per_slot *= slot_count;
   }
 }
 
-TickTimerID TickTimerManager::AddPeriodTimer(uint32_t interval, const TickTimerCallback& callback)
+TickTimerID TickTimerManager::AddPeriodTimer(
+  uint32_t interval, const TickTimerCallback& callback)
 {
   return AddTimer(interval, callback, true);
 }
 
-TickTimerID TickTimerManager::AddOneshotTimer(uint32_t delay, const TickTimerCallback& callback)
+TickTimerID TickTimerManager::AddOneshotTimer(
+  uint32_t delay, const TickTimerCallback& callback)
 {
   return AddTimer(delay, callback, false);
 }
@@ -82,14 +89,11 @@ TickTimerID TickTimerManager::AddTimer(
 
 void TickTimerManager::AddNode(TimerNode* node)
 {
-  size_t offset_tick = node->expire - tick_;
-  size_t wheel_tick = 1;
   for (auto& wheel : wheels_)
   {
-    wheel_tick *= wheel.SlotCount();
-    if (offset_tick / wheel_tick == 0)
+    if (node->interval <= wheel.WheelTicks())
     {
-      wheel.AddNode(node, offset_tick);
+      wheel.AddNode(node);
       return;
     }
   }
@@ -100,13 +104,17 @@ void TickTimerManager::RunTick()
   ++tick_;
   MoveWheel(0);
 
+  TimerNode wait_add_nodes;
   auto& slot = wheels_[0].CurrentSlot();
   TimerNode* node = slot.next;
   while (node)
   {
     auto next = node->next;
+
     if (node->valid)
     {
+      std::cout << "timer(" << node->interval << ") [0][" << wheels_[0].Cursor()
+                << "] invoke";
       node->callback.Invoke(TickTimerID{node});
     }
 
@@ -117,14 +125,28 @@ void TickTimerManager::RunTick()
     }
     else
     {
-      // add timer again
+      // update timer expire
       node->expire += node->interval;
-      AddNode(node);
+
+      // append to waiting list
+      node->next = wait_add_nodes.next;
+      wait_add_nodes.next = node;
     }
 
     node = next;
   }
+
+  // clear the slot
   slot.next = nullptr;
+
+  // add periodic node
+  node = wait_add_nodes.next;
+  while (node)
+  {
+    auto next = node->next;
+    AddNode(node);
+    node = next;
+  }
 }
 
 void TickTimerManager::MoveWheel(size_t index)
@@ -136,13 +158,16 @@ void TickTimerManager::MoveWheel(size_t index)
       // move next wheel
       MoveWheel(index + 1);
     }
+  }
 
-    if (index > 0)
-    {
-      auto slot = wheels_[index].CurrentSlot();
-      // move slot to prev wheel
-      wheels_[index - 1].AddNodes(slot.next, tick_);
-    }
+  if (index > 0)
+  {
+    std::cout << "move [" << index << "][" << wheels_[index].Cursor()
+              << "] to prev-wheel" << std::endl;
+    // move next slot into prev-wheel
+    auto& slot = wheels_[index].CurrentSlot();  // ???
+    wheels_[index - 1].AddNodes(slot.next, tick_);
+    slot.next = nullptr;
   }
 }
 
