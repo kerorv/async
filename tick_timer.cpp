@@ -42,10 +42,20 @@ size_t TickTimerWheel::MoveNext()
 TickTimerManager::TickTimerManager(std::initializer_list<size_t> il)
   : tick_(0)
 {
+  if (il.size() == 0)
+  {
+    throw std::runtime_error("TickTimerManager param is too less");
+  }
+
   size_t ticks_per_slot = 1;
   wheels_.reserve(il.size());
   for (auto slot_count : il)
   {
+    if (slot_count == 0)
+    {
+      throw std::runtime_error("TickTimerWheel's slot count can't be zero");
+    }
+
     wheels_.push_back(TickTimerWheel(slot_count, ticks_per_slot));
     ticks_per_slot *= slot_count;
   }

@@ -63,6 +63,8 @@ public:
     uint32_t delay, const TickTimerCallback& callback);
   void RemoveTimer(TickTimerID timer_id);
 
+  size_t MaxTimerTicks() const { return wheels_.rbegin()->WheelTicks(); }
+
 private:
   TickTimerID AddTimer(
     uint32_t interval, const TickTimerCallback& callback, bool is_periodic);
