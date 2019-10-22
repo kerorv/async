@@ -40,7 +40,6 @@ public:
 
   size_t MoveNext();
   TimerNode& CurrentSlot() { return slots_[cursor_]; }
-  TimerNode& NextSlot() { return slots_[(cursor_ + 1) % slots_.size()]; }
   size_t SlotCount() const { return slots_.size(); }
   size_t WheelTicks() const { return slot_ticks_ * slots_.size(); }
   size_t Cursor() const { return cursor_; }

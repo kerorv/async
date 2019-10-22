@@ -99,6 +99,11 @@ public:
     std::cout << " : " << ++tick_ << " " << std::endl;
   }
 
+  void OnEvent(int n, int event)
+  {
+    std::cout << n << " -> Event: " << event << std::endl;
+  }
+
 private:
   size_t id_;
   size_t tick_;
@@ -112,7 +117,8 @@ int main()
   /*
     Object object(LOCATION);
     auto callback = MakeCallback(&Object::OnEvent, &object,
-    std::placeholders::_1); callback.Invoke(5);
+      std::placeholders::_1);
+    callback.Invoke(5);
 
     auto callback2 = MakeCallback(&OnEvent2, std::placeholders::_1);
     callback2.Invoke(1);
@@ -129,12 +135,26 @@ int main()
   auto th1 = std::make_unique<TimerThing>(1);
   auto th2 = std::make_unique<TimerThing>(2);
   auto th3 = std::make_unique<TimerThing>(3);
-  app.AddPeriodTimer(
-    std::chrono::hours{24}, MakeCallback(&TimerThing::OnTimer, th1.get(), std::placeholders::_1));
-  app.AddPeriodTimer(
-    std::chrono::seconds{60}, MakeCallback(&TimerThing::OnTimer, th2.get(), std::placeholders::_1));
-  app.AddPeriodTimer(
-    std::chrono::seconds{70}, MakeCallback(&TimerThing::OnTimer, th3.get(), std::placeholders::_1));
+  /*
+    app.AddPeriodTimer(std::chrono::hours{24},
+      MakeCallback(&TimerThing::OnTimer, th1.get(), std::placeholders::_1));
+    app.AddPeriodTimer(std::chrono::seconds{60},
+      MakeCallback(&TimerThing::OnTimer, th2.get(), std::placeholders::_1));
+    app.AddPeriodTimer(std::chrono::seconds{70},
+      MakeCallback(&TimerThing::OnTimer, th3.get(), std::placeholders::_1));
+  */
+  MyBind(std::make_integer_sequence<int, 0>(), &TimerThing::OnTimer, th1.get());
+  MyBind(std::make_integer_sequence<int, 1>(), &OnEvent2);
+
+  auto callback2 = MakeCallbackEx<void(int)>(&OnEvent2);
+  callback2.Invoke(1);
+
+  auto callback3 =
+    MakeCallbackEx<void(TickTimerID)>(&TimerThing::OnTimer, th1.get());
+  callback3.Invoke(TickTimerID{nullptr});
+
+  auto callback4 = MakeCallbackEx<void(int)>(&TimerThing::OnEvent, th1.get(), 1);
+  callback4.Invoke(4);
 
   app.Start();
 

@@ -98,3 +98,36 @@ auto MakeCallback(F&& f, Args&&... args)
             std::bind(std::forward<F>(f), std::forward<Args>(args)...)),
     monitor};
 }
+
+template <int... I, typename F, typename... Args>
+auto MyBind(std::integer_sequence<int, I...>, F&& f, Args&&... args)
+{
+  return std::bind(
+    std::forward<F>(f), std::forward<Args>(args)..., std::_Ph<I + 1>{}...);
+}
+
+template <typename T>
+struct FunctionSignature;
+template <typename R, typename... Args>
+struct FunctionSignature<R(Args...)>
+{
+  static constexpr size_t argnum = sizeof...(Args);
+};
+
+template <typename T, typename F, typename... Args>
+Callback<T> MakeCallbackEx(F&& f, Args&&... args)
+{
+  async::LifeTimeTracker::Monitor monitor;
+  if constexpr (CallbackFunctionTraits<F>::is_member_func)
+  {
+    static_assert(std::is_base_of_v<async::CallbackHost,
+      CallbackFunctionTraits<F>::ClassType>);
+    async::CallbackHost* host = CallbackHostFilter(std::forward<Args>(args)...);
+    monitor = host->GetMonitor();
+  }
+
+  return {std::function<T>(MyBind(
+            std::make_integer_sequence<int, FunctionSignature<T>::argnum>(),
+            std::forward<F>(f), std::forward<Args>(args)...)),
+    monitor};
+}

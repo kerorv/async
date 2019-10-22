@@ -114,9 +114,11 @@ void TickTimerManager::RunTick()
   ++tick_;
   MoveWheel(0);
 
-  TimerNode wait_add_nodes;
   auto& slot = wheels_[0].CurrentSlot();
   TimerNode* node = slot.next;
+  // clear the slot at first
+  slot.next = nullptr;
+  // then traversing timer list
   while (node)
   {
     auto next = node->next;
@@ -135,26 +137,12 @@ void TickTimerManager::RunTick()
     }
     else
     {
-      // update timer expire
       node->expire += node->interval;
 
-      // append to waiting list
-      node->next = wait_add_nodes.next;
-      wait_add_nodes.next = node;
+      // add this periodic timer again
+      AddNode(node);
     }
 
-    node = next;
-  }
-
-  // clear the slot
-  slot.next = nullptr;
-
-  // add periodic node
-  node = wait_add_nodes.next;
-  while (node)
-  {
-    auto next = node->next;
-    AddNode(node);
     node = next;
   }
 }
@@ -174,8 +162,9 @@ void TickTimerManager::MoveWheel(size_t index)
   {
     std::cout << "move [" << index << "][" << wheels_[index].Cursor()
               << "] to prev-wheel" << std::endl;
+
     // move next slot into prev-wheel
-    auto& slot = wheels_[index].CurrentSlot();  // ???
+    auto& slot = wheels_[index].CurrentSlot();
     wheels_[index - 1].AddNodes(slot.next, tick_);
     slot.next = nullptr;
   }
