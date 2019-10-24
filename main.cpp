@@ -3,6 +3,7 @@
 #include "app.h"
 #include "callback.h"
 #include "cotask.h"
+#include "resp_codec.h"
 
 #define STR(s) #s
 #define STR2(s) STR(s)
@@ -130,11 +131,13 @@ int main()
     TickTimerManager::Instance().AddOneshotTimer(1s, timer_cb);
   */
 
+/*
   App app;
 
   auto th1 = std::make_unique<TimerThing>(1);
   auto th2 = std::make_unique<TimerThing>(2);
   auto th3 = std::make_unique<TimerThing>(3);
+*/
   /*
     app.AddPeriodTimer(std::chrono::hours{24},
       MakeCallback(&TimerThing::OnTimer, th1.get(), std::placeholders::_1));
@@ -143,9 +146,7 @@ int main()
     app.AddPeriodTimer(std::chrono::seconds{70},
       MakeCallback(&TimerThing::OnTimer, th3.get(), std::placeholders::_1));
   */
-  MyBind(std::make_integer_sequence<int, 0>(), &TimerThing::OnTimer, th1.get());
-  MyBind(std::make_integer_sequence<int, 1>(), &OnEvent2);
-
+/*
   auto callback2 = MakeCallbackEx<void(int)>(&OnEvent2);
   callback2.Invoke(1);
 
@@ -157,6 +158,23 @@ int main()
   callback4.Invoke(4);
 
   app.Start();
+*/
 
+  RESPDecoder decoder;
+  auto str = decoder.Decode("+OK\r\n");
+  auto error = decoder.Decode("-Error message\r\n");
+  auto integer = decoder.Decode(":1000\r\n");
+  auto bulk_str = decoder.Decode("$10\r\nfoo \r\n bar\r\n");
+  auto null_bulk_str = decoder.Decode("$-1\r\n");
+  auto array = decoder.Decode("*2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n");
+  std::cout << ToString(array) << std::endl;
+  auto array1 = decoder.Decode("*3\r\n:1\r\n:2\r\n:3\r\n");
+  std::cout << ToString(array1) << std::endl;
+  auto array2 = decoder.Decode("*5\r\n:1\r\n:2\r\n:3\r\n:4\r\n$6\r\nfoobar\r\n");
+  std::cout << ToString(array2) << std::endl;
+  auto null_array = decoder.Decode("*-1\r\n");
+  std::cout << ToString(null_array) << std::endl;
+  auto array3 = decoder.Decode("*2\r\n*3\r\n:1\r\n:2\r\n:3\r\n*2\r\n+Foo\r\n-Bar\r\n");
+  std::cout << ToString(array3) << std::endl;
   return 0;
 }

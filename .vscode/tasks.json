@@ -21,7 +21,8 @@
         "main.cpp",
         "cotask.cpp",
         "tick_timer.cpp",
-        "app.cpp"
+        "app.cpp",
+        "resp_codec.cpp"
       ],
       "group": {
         "kind": "build",
