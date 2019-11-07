@@ -10,7 +10,7 @@ struct Callback
   async::LifeTimeTracker::Monitor monitor;
 
   template <typename... Args>
-  void Invoke(Args&&... args)
+  void Invoke(Args&&... args) const
   {
     if (!func)
     {

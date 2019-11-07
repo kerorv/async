@@ -22,7 +22,8 @@
         "cotask.cpp",
         "tick_timer.cpp",
         "app.cpp",
-        "resp_codec.cpp"
+        "resp_codec.cpp",
+        "redis_client.cpp"
       ],
       "group": {
         "kind": "build",

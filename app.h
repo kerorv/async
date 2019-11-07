@@ -16,6 +16,8 @@ public:
     std::chrono::seconds delay, const TickTimerCallback& callback);
   void RemoveTimer(TickTimerID timer_id);
 
+  asio::io_context& IoCtx() { return ioctx_; }
+
 private:
   void OnTimer();
 
