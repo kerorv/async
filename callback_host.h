@@ -118,15 +118,9 @@ public:
     }
   }
 
-  LifeTimeTracker& operator=(const LifeTimeTracker&)
-  {
-    return *this;
-  }
+  LifeTimeTracker& operator=(const LifeTimeTracker&) { return *this; }
 
-  LifeTimeTracker& operator=(const LifeTimeTracker&&)
-  {
-    return *this;
-  }
+  LifeTimeTracker& operator=(const LifeTimeTracker&&) { return *this; }
 
   Monitor GetMonitor() { return Monitor(this->state_); }
 

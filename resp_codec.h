@@ -20,10 +20,14 @@ struct RedisArray
 using RedisMessage =
   std::variant<RedisInteger, RedisString, RedisError, RedisArray>;
 
+using RedisRequest = std::vector<RedisString>;
+using RedisResponse = RedisMessage;
+
 class RESPEncoder
 {
 public:
   std::string Encode(const RedisMessage& msg);
+  std::string Encode(const RedisRequest& cmd);
 };
 
 class RESPDecoder

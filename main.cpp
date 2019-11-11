@@ -121,11 +121,10 @@ void TestCo()
 void TestCallback()
 {
   Object object(LOCATION);
-  auto callback =
-    MakeCallback(&Object::OnEvent, &object, std::placeholders::_1);
+  auto callback = async::Bind<void(int)>(&Object::OnEvent, &object);
   callback.Invoke(5);
 
-  auto callback2 = MakeCallback(&OnEvent2, std::placeholders::_1);
+  auto callback2 = async::Bind<void(int)>(&OnEvent2);
   callback2.Invoke(1);
 }
 
@@ -133,15 +132,14 @@ void TestCallbackEx()
 {
   auto th1 = std::make_unique<TimerThing>(1);
 
-  auto callback2 = MakeCallbackEx<void(int)>(&OnEvent2);
+  auto callback2 = async::Bind<void(int)>(&OnEvent2);
   callback2.Invoke(1);
 
   auto callback3 =
-    MakeCallbackEx<void(TickTimerID)>(&TimerThing::OnTimer, th1.get());
+    async::Bind<void(TickTimerID)>(&TimerThing::OnTimer, th1.get());
   callback3.Invoke(TickTimerID{nullptr});
 
-  auto callback4 =
-    MakeCallbackEx<void(int)>(&TimerThing::OnEvent, th1.get(), 1);
+  auto callback4 = async::Bind<void(int)>(&TimerThing::OnEvent, th1.get(), 1);
   callback4.Invoke(4);
 }
 
@@ -152,11 +150,11 @@ void TestAppTimer(App& app)
   auto th3 = std::make_unique<TimerThing>(3);
 
   app.AddPeriodTimer(std::chrono::hours{24},
-    MakeCallback(&TimerThing::OnTimer, th1.get(), std::placeholders::_1));
+    async::Bind<void(TickTimerID)>(&TimerThing::OnTimer, th1.get()));
   app.AddPeriodTimer(std::chrono::seconds{60},
-    MakeCallback(&TimerThing::OnTimer, th2.get(), std::placeholders::_1));
+    async::Bind<void(TickTimerID)>(&TimerThing::OnTimer, th2.get()));
   app.AddPeriodTimer(std::chrono::seconds{70},
-    MakeCallback(&TimerThing::OnTimer, th3.get(), std::placeholders::_1));
+    async::Bind<void(TickTimerID)>(&TimerThing::OnTimer, th3.get()));
 }
 
 void TestRESPCodec()
@@ -208,7 +206,7 @@ public:
     std::cout << "redis client connected." << std::endl;
 
     client_->Command("*2\r\n$4\r\nkeys\r\n$1\r\n*\r\n",
-      MakeCallbackEx<void(const ZResult<RedisMessage>&)>(
+      async::Bind<void(const ZResult<RedisMessage>&)>(
         &RedisClientConsole::OnCommand, this, "key *"));
   }
 
@@ -239,10 +237,8 @@ int main()
   App app;
 
   RedisClientConsole console;
-  auto cb1 =
-    MakeCallbackEx<void(int)>(&RedisClientConsole::OnConnected, &console);
-  auto cb2 =
-    MakeCallbackEx<void()>(&RedisClientConsole::OnDisconnect, &console);
+  auto cb1 = async::Bind<void(int)>(&RedisClientConsole::OnConnected, &console);
+  auto cb2 = async::Bind<void()>(&RedisClientConsole::OnDisconnect, &console);
   RedisClient client(app, cb1, cb2);
   console.SetRedisClient(&client);
   client.Connect(
