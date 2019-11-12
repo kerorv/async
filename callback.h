@@ -3,6 +3,8 @@
 #include <functional>
 #include "callback_host.h"
 
+namespace async
+{
 template <typename T>
 class Callback
 {
@@ -41,8 +43,6 @@ private:
   async::LifeTimeTracker::Monitor monitor_;
 };
 
-namespace async
-{
 namespace detail
 {
 template <int... I, typename F, typename... Args>

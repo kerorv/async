@@ -8,9 +8,9 @@
 #include "result.h"
 #include "thirtyparty/asio/asio.hpp"
 
-using ConnectedCallback = Callback<void(int)>;
-using DisconnectCallback = Callback<void()>;
-using CommandCallback = Callback<void(const ZResult<RedisMessage>&)>;
+using ConnectedCallback = async::Callback<void(int)>;
+using DisconnectCallback = async::Callback<void()>;
+using CommandCallback = async::Callback<void(const ZResult<RedisMessage>&)>;
 
 class RedisClient
 {
@@ -49,7 +49,7 @@ private:
   struct CommandClosure
   {
     std::string cmd;
-    Callback<void(const ZResult<RedisMessage>&)> callback;
+    async::Callback<void(const ZResult<RedisMessage>&)> callback;
   };
 
   int Parse(std::string_view sv);

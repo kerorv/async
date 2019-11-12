@@ -9,7 +9,7 @@ struct TickTimerID
   TimerNode* ptr;
 };
 
-using TickTimerCallback = Callback<void(TickTimerID)>;
+using TickTimerCallback = async::Callback<void(TickTimerID)>;
 
 struct TimerNode
 {
